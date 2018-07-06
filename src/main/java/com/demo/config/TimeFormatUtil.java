@@ -1,5 +1,6 @@
 package com.demo.config;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -12,21 +13,16 @@ public class TimeFormatUtil {
     /**
      * 获取当前时间
      */
-   /* public String getCurrentTime(){
+    public Date getCurrentTime(){
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date date = new Date();
-        System.out.printf(""+ date);
-        //格式化方法，返回值为String类型
-        String a = sdf.format(date);
-        return a;
-    }*/
-
-    public static void main(String[] args) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date date = new Date();
-        System.out.printf(""+ date);
-        //格式化方法，返回值为String类型
-        String a = sdf.format(date);
-        System.out.println(a);
+        Date currentDate = new Date();
+        //格式化方法，返回值为date类型
+        Date date = null;
+        try {
+            date = sdf.parse(sdf.format(currentDate));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return date;
     }
 }

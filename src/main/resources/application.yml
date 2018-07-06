@@ -21,18 +21,17 @@ spring:
     testWhileIdle: true
     testOnBorrow: false
     testOnReturn: false
+
   # redis配置
-   redis:
-      host: 127.0.0.1
-      port: 6379
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    jedis:
       pool:
+        max-active: 2000
         max-idle: 1000
         min-idle: 500
-        max-active: 2000
-        max-wait: 1000
-        max-total: 10000
-        block-when-exhausted: false
-      timeout: 0
+
 
 # 配置mybatis-plus
 mybatis-plus:

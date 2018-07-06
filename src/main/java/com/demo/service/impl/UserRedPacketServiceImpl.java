@@ -43,8 +43,11 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
     private RedisTemplate redisTemplate;
 
 
-    //失败
+    // 失败
     private static final int FAILED = 0;
+
+    // 成功
+    private static final int SUCCESS = 1;
 
     /**
      * 保存抢红包信息(乐观锁)
@@ -177,31 +180,11 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
         RedPacket redPacket = null;
         // 抢红包对象信息
         UserRedPacket userRedPacket = null;
+
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         // 先去缓存中查询库存信息，如果缓存中没有缓存信息，就从数据库中去查询，并存入缓存
-        if(redisTemplate.hasKey("redPacket")) {
-            // 获取当前红包库存
-            int stock = (Integer) ops.get("stock");
-            // 如果当前的红包不等于0
-            if(stock != 0) {
-                userRedPacket = new UserRedPacket();
-                userRedPacket.setRedPacketId(redPacketId);
-                userRedPacket.setUserId(userId);
-                userRedPacket.setAmount((BigDecimal)ops.get("amount"));
-                userRedPacket.getGrabTime();
-                userRedPacket.setNote("抢红包：" + redPacketId);
-
-                // 将抢到红包的用户信息先存入缓存队列
-                BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
-                listOperations.leftPush(userRedPacket);
-
-                // 红包库存-1
-                ops.set("stock", stock - 1);
-            }else {
-                // 一旦发现没有库存，立马返回失败
-                return FAILED;
-            }
-        }else {
+        if(!redisTemplate.hasKey("redPacket")) {
+            logger.info("redis开始第一次缓存");
             // 获取红包信息
             redPacket = redPacketDao.getRedPacket(redPacketId);
             // 将库存数存入缓存
@@ -209,5 +192,29 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             ops.set("amount", redPacket.getAmount());
         }
 
+        // 获取当前红包库存
+        int stock = (Integer) ops.get("stock");
+        // 如果当前的红包不等于0,可以继续抢红包
+        if(stock != 0) {
+            userRedPacket = new UserRedPacket();
+            userRedPacket.setRedPacketId(redPacketId);
+            userRedPacket.setUserId(userId);
+            userRedPacket.setAmount((BigDecimal)ops.get("amount"));
+            userRedPacket.setGrabTime(new TimeFormatUtil().getCurrentTime());
+            userRedPacket.setNote("抢红包：" + redPacketId);
+
+            // 将抢到红包的用户信息先存入缓存队列
+            BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
+            listOperations.leftPush(userRedPacket);
+            logger.info("抢到红包的用户信息存入缓存成功");
+
+            // 红包库存-1
+            ops.set("stock", stock - 1);
+
+            return SUCCESS;
+        }else {
+            // 一旦发现没有库存，立马返回失败
+            return FAILED;
+        }
     }
 }

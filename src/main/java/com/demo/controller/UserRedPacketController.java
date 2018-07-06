@@ -26,6 +26,18 @@ public class UserRedPacketController {
     @Autowired
     private UserRedPacketService userRedPacketService;
 
+    @RequestMapping("/grepRedPacketByRedis")
+    @ResponseBody
+    public Map<String, Object> grepRedPacketByRedis(Integer redPacketId, Integer userId) {
+        // 抢红包
+        int result = userRedPacketService.grepRedPacketByRedis(redPacketId, userId);
+        Map<String, Object> resultMap = new HashMap<String, Object>();
+        boolean flag = result > 0;
+        resultMap.put("success", flag);
+        resultMap.put("message", flag?"抢红包成功":"抢红包失败");
+        return resultMap;
+    }
+
     @RequestMapping("/grepRedPacketForVersion")
     @ResponseBody
     public Map<String, Object> grepRedPacketForVersion(Integer redPacketId, Integer userId) {
