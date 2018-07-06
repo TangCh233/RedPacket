@@ -1,0 +1,42 @@
+buildscript {
+	ext {
+		springBootVersion = '2.0.3.RELEASE'
+	}
+	repositories {
+		// mavenCentral()
+		maven { url "http://maven.aliyun.com/nexus/content/groups/public/" }
+		mavenLocal()
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+group = 'com'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+}
+
+
+dependencies {
+
+	compile('org.springframework.boot:spring-boot-starter-web')
+	runtime('mysql:mysql-connector-java')
+	// mybatis plus 与 spring boot整合
+	compile('com.baomidou:mybatis-plus-boot-starter:2.2.0')
+	// 模板引擎
+	compile('org.apache.velocity:velocity-engine-core:2.0')
+	// Druid数据库连接池
+	compile('com.alibaba:druid:1.1.10')
+
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+
+}

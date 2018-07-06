@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.demo.dao.RedPacketDao">
+    <!--悲观锁-->
+    <select id="getRedPacketForUpdate" parameterType="int" resultType="com.demo.entity.RedPacket">
+        select id, user_id as userId, amount, send_date as sendDate, total, unit_amount as unitAmount,
+        stock, version, note
+        from t_red_packet
+        where
+        id = #{id} for update
+    </select>
+
+    <!--查询红包的具体信息-->
+    <select id="getRedPacket" parameterType="int" resultType="com.demo.entity.RedPacket">
+        select id, user_id as userId, amount, send_date as sendDate, total, unit_amount as unitAmount,
+            stock, version, note
+        from t_red_packet
+        where
+            id = #{id}
+    </select>
+
+    <!--扣减抢红包内存-->
+    <update id="decreaseRedPacket" parameterType="int">
+        update t_red_packet set stock = stock - 1 where id = #{id}
+    </update>
+
+    <!--乐观锁-->
+    <update id="decreaseRedPacketByVersion">
+        update t_red_packet
+        set
+          stock = stock - 1,
+          version = version + 1
+        where
+          id = #{id}
+        and version = #{version}
+    </update>
+
+
+
+</mapper>
