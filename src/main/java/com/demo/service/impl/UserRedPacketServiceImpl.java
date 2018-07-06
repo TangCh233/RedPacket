@@ -1,16 +1,24 @@
 package com.demo.service.impl;
 
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.demo.config.TimeFormatUtil;
 import com.demo.dao.RedPacketDao;
 import com.demo.dao.UserRedPacketDao;
 import com.demo.entity.RedPacket;
 import com.demo.entity.UserRedPacket;
 import com.demo.service.UserRedPacketService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * <p>
@@ -23,11 +31,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, UserRedPacket> implements UserRedPacketService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserRedPacketServiceImpl.class);
+
     @Autowired
     private RedPacketDao redPacketDao;
 
     @Autowired
     private UserRedPacketDao userRedPacketDao;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
 
     //失败
     private static final int FAILED = 0;
@@ -149,4 +163,51 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             }
         }
     }*/
+
+    /**
+     * 通过redis来保存红包信息
+     *
+     * @param redPacketId 红包编号
+     * @param userId      抢红包用户编号
+     * @return
+     */
+    @Override
+    public int grepRedPacketByRedis(Integer redPacketId, Integer userId) {
+        // 红包信息
+        RedPacket redPacket = null;
+        // 抢红包对象信息
+        UserRedPacket userRedPacket = null;
+        ValueOperations<String, Object> ops = redisTemplate.opsForValue();
+        // 先去缓存中查询库存信息，如果缓存中没有缓存信息，就从数据库中去查询，并存入缓存
+        if(redisTemplate.hasKey("redPacket")) {
+            // 获取当前红包库存
+            int stock = (Integer) ops.get("stock");
+            // 如果当前的红包不等于0
+            if(stock != 0) {
+                userRedPacket = new UserRedPacket();
+                userRedPacket.setRedPacketId(redPacketId);
+                userRedPacket.setUserId(userId);
+                userRedPacket.setAmount((BigDecimal)ops.get("amount"));
+                userRedPacket.getGrabTime();
+                userRedPacket.setNote("抢红包：" + redPacketId);
+
+                // 将抢到红包的用户信息先存入缓存队列
+                BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
+                listOperations.leftPush(userRedPacket);
+
+                // 红包库存-1
+                ops.set("stock", stock - 1);
+            }else {
+                // 一旦发现没有库存，立马返回失败
+                return FAILED;
+            }
+        }else {
+            // 获取红包信息
+            redPacket = redPacketDao.getRedPacket(redPacketId);
+            // 将库存数存入缓存
+            ops.set("stock", redPacket.getStock());
+            ops.set("amount", redPacket.getAmount());
+        }
+
+    }
 }

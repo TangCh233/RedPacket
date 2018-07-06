@@ -28,4 +28,12 @@ public interface UserRedPacketService extends IService<UserRedPacket> {
      */
     int grepRedPacketForVersion(Integer redPacketId, Integer userId);
 
+    /**
+     * 通过redis来保存红包信息
+     * @param redPacketId 红包编号
+     * @param userId 抢红包用户编号
+     * @return
+     */
+    int grepRedPacketByRedis(Integer redPacketId, Integer userId);
+
 }

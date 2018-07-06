@@ -38,6 +38,8 @@ dependencies {
 	compile('org.apache.velocity:velocity-engine-core:2.0')
 	// Druid数据库连接池
 	compile('com.alibaba:druid:1.1.10')
+	//Redis
+	compile('org.springframework.boot:spring-boot-starter-data-redis')
 
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 

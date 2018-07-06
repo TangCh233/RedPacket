@@ -49,9 +49,9 @@ public class CodeGenerator {
 
         // 策略配置
         StrategyConfig strategy = new StrategyConfig();
-        strategy.setTablePrefix(new String[] {"t_"});// 去除表前缀
+        strategy.setTablePrefix("t_");// 去除表前缀
         strategy.setNaming(NamingStrategy.underline_to_camel);// 表名生成策略
-        strategy.setInclude(new String[] { "t_user_red_packet" }); // 需要生成的表
+        strategy.setInclude("t_user_red_packet"); // 需要生成的表
 
         strategy.setSuperServiceClass(null);
         strategy.setSuperServiceImplClass(null);
