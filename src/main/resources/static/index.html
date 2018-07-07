@@ -12,7 +12,7 @@
             var max = 3000;
             for (var i = 1; i <= max; i++) {
                 //jQuery的post请求，请注意这是异步请求
-                $.pst({
+                $.post({
                     //请求抢id为1的红包
                     //根据自己请求修改对应的url和大红包编号
                     url: "userRedPacket/grepRedPacketByRedis?redPacketId=6&userId=" + i,

@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.data.redis.core.*;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -33,6 +36,8 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
 
     private static final Logger logger = LoggerFactory.getLogger(UserRedPacketServiceImpl.class);
 
+    private static final long TIME_OUT = 300; // 设置缓存的有效期，5分钟
+
     @Autowired
     private RedPacketDao redPacketDao;
 
@@ -41,7 +46,6 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
 
     @Autowired
     private RedisTemplate redisTemplate;
-
 
     // 失败
     private static final int FAILED = 0;
@@ -187,13 +191,29 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             logger.info("redis开始第一次缓存");
             // 获取红包信息
             redPacket = redPacketDao.getRedPacket(redPacketId);
-            // 将库存数存入缓存
-            ops.set("stock", redPacket.getStock());
-            ops.set("amount", redPacket.getAmount());
-        }
 
+            RedisSerializer<String> stringSerializer = new StringRedisSerializer();
+            redisTemplate.setKeySerializer(stringSerializer);
+            redisTemplate.setValueSerializer(stringSerializer);
+            redisTemplate.setHashKeySerializer(stringSerializer);
+            redisTemplate.setHashValueSerializer(stringSerializer);
+
+
+            // 将库存数存入缓存
+            ops.set("呢喃北上","12");
+            ops.set("stock", redPacket.getStock().toString(),TIME_OUT, TimeUnit.SECONDS);
+            ops.set("amount", redPacket.getAmount().toString(),TIME_OUT, TimeUnit.SECONDS);
+
+
+            logger.info("存入缓存中的值 cfx："+ops.get("陈飞翔"));
+            logger.info("存入缓存中的值stock："+ops.get("stock"));
+            logger.info("存入缓存中的值stock："+ops.get("amount"));
+
+        }
+        //Todo 修改加入对象队列和类型转换
         // 获取当前红包库存
-        int stock = (Integer) ops.get("stock");
+        Integer stock = (Integer)ops.get("stock");
+        System.out.println("stock is" + stock);
         // 如果当前的红包不等于0,可以继续抢红包
         if(stock != 0) {
             userRedPacket = new UserRedPacket();
@@ -209,7 +229,8 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             logger.info("抢到红包的用户信息存入缓存成功");
 
             // 红包库存-1
-            ops.set("stock", stock - 1);
+            stock = stock -1;
+            ops.set("stock",stock,TIME_OUT, TimeUnit.SECONDS);
 
             return SUCCESS;
         }else {
