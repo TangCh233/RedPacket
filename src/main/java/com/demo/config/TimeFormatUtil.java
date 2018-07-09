@@ -11,12 +11,10 @@ import java.util.Date;
  */
 public class TimeFormatUtil {
     /**
-     * 获取当前时间
+     * 格式化当前时间，返回Date类型
      */
-    public Date getCurrentTime(){
+    public Date getCurrentTime(Date currentDate){
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date currentDate = new Date();
-        //格式化方法，返回值为date类型
         Date date = null;
         try {
             date = sdf.parse(sdf.format(currentDate));

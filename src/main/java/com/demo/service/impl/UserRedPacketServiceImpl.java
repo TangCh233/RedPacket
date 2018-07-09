@@ -1,6 +1,7 @@
 package com.demo.service.impl;
 
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.demo.config.ObjectToBigDecimalUtil;
 import com.demo.config.TimeFormatUtil;
 import com.demo.dao.RedPacketDao;
 import com.demo.dao.UserRedPacketDao;
@@ -10,16 +11,12 @@ import com.demo.service.UserRedPacketService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.data.redis.core.*;
-import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -46,6 +43,9 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     // 失败
     private static final int FAILED = 0;
@@ -185,52 +185,47 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
         // 抢红包对象信息
         UserRedPacket userRedPacket = null;
 
+        // 用来存取对象
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
+
+        // 用来存取字符串
+        ValueOperations<String, String> strOps = stringRedisTemplate.opsForValue();
+
         // 先去缓存中查询库存信息，如果缓存中没有缓存信息，就从数据库中去查询，并存入缓存
         if(!redisTemplate.hasKey("redPacket")) {
             logger.info("redis开始第一次缓存");
             // 获取红包信息
             redPacket = redPacketDao.getRedPacket(redPacketId);
 
-            RedisSerializer<String> stringSerializer = new StringRedisSerializer();
-            redisTemplate.setKeySerializer(stringSerializer);
-            redisTemplate.setValueSerializer(stringSerializer);
-            redisTemplate.setHashKeySerializer(stringSerializer);
-            redisTemplate.setHashValueSerializer(stringSerializer);
+            // 首次将数据存入缓存
+            ops.set("redPacket",redPacket,TIME_OUT, TimeUnit.SECONDS);
+            strOps.set("stock", redPacket.getStock().toString(),TIME_OUT, TimeUnit.SECONDS);
+            strOps.set("amount", redPacket.getAmount().toString(),TIME_OUT, TimeUnit.SECONDS);
 
-
-            // 将库存数存入缓存
-            ops.set("呢喃北上","12");
-            ops.set("stock", redPacket.getStock().toString(),TIME_OUT, TimeUnit.SECONDS);
-            ops.set("amount", redPacket.getAmount().toString(),TIME_OUT, TimeUnit.SECONDS);
-
-
-            logger.info("存入缓存中的值 cfx："+ops.get("陈飞翔"));
-            logger.info("存入缓存中的值stock："+ops.get("stock"));
-            logger.info("存入缓存中的值stock："+ops.get("amount"));
+            logger.info("首次存入缓存中的值stock："+strOps.get("stock"));
 
         }
-        //Todo 修改加入对象队列和类型转换
+        // TODO 解决抢包失败率问题
         // 获取当前红包库存
-        Integer stock = (Integer)ops.get("stock");
-        System.out.println("stock is" + stock);
+        Integer stock = Integer.parseInt(strOps.get("stock"));
+        logger.info("当前缓存中的值stock："+stock);
         // 如果当前的红包不等于0,可以继续抢红包
         if(stock != 0) {
             userRedPacket = new UserRedPacket();
             userRedPacket.setRedPacketId(redPacketId);
             userRedPacket.setUserId(userId);
-            userRedPacket.setAmount((BigDecimal)ops.get("amount"));
-            userRedPacket.setGrabTime(new TimeFormatUtil().getCurrentTime());
+            userRedPacket.setAmount(new ObjectToBigDecimalUtil().getBigDecimal(strOps.get("amount")));
+            userRedPacket.setGrabTime(new TimeFormatUtil().getCurrentTime(new Date()));
             userRedPacket.setNote("抢红包：" + redPacketId);
 
-            // 将抢到红包的用户信息先存入缓存队列
+            // 将抢到红包的用户信息的对象先存入缓存队列
             BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
             listOperations.leftPush(userRedPacket);
             logger.info("抢到红包的用户信息存入缓存成功");
 
             // 红包库存-1
             stock = stock -1;
-            ops.set("stock",stock,TIME_OUT, TimeUnit.SECONDS);
+            strOps.set("stock",stock.toString(),TIME_OUT, TimeUnit.SECONDS);
 
             return SUCCESS;
         }else {
