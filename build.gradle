@@ -3,8 +3,8 @@ buildscript {
 		springBootVersion = '2.0.3.RELEASE'
 	}
 	repositories {
-		// mavenCentral()
 		maven { url "http://maven.aliyun.com/nexus/content/groups/public/" }
+		mavenCentral()
 		mavenLocal()
 	}
 	dependencies {
@@ -22,8 +22,8 @@ version = '0.0.1-SNAPSHOT'
 sourceCompatibility = 1.8
 
 repositories {
-	// mavenCentral()
 	maven { url "http://maven.aliyun.com/nexus/content/groups/public/" }
+	mavenCentral()
 	mavenLocal()
 }
 
@@ -38,8 +38,10 @@ dependencies {
 	compile('org.apache.velocity:velocity-engine-core:2.0')
 	// Druid数据库连接池
 	compile('com.alibaba:druid:1.1.10')
-	//Redis
+	// Redis
 	compile('org.springframework.boot:spring-boot-starter-data-redis')
+	// AOP
+	compile('org.springframework.boot:spring-boot-starter-aop')
 
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 

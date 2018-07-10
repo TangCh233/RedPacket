@@ -11,6 +11,7 @@ import com.demo.service.UserRedPacketService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -131,7 +132,6 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
      * @return 影响的记录数
      *//*
     @Override
-    @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
     public int grepRedPacketForVersion(Integer redPacketId, Integer userId) {
         // 记录开始的时间
         long start = System.currentTimeMillis();
@@ -179,6 +179,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
      * @return
      */
     @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
     public int grepRedPacketByRedis(Integer redPacketId, Integer userId) {
         // 红包信息
         RedPacket redPacket = null;
@@ -191,9 +192,11 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
         // 用来存取字符串
         ValueOperations<String, String> strOps = stringRedisTemplate.opsForValue();
 
+        /*stringRedisTemplate.setEnableTransactionSupport(true);*/
+
         // 先去缓存中查询库存信息，如果缓存中没有缓存信息，就从数据库中去查询，并存入缓存
         if(!redisTemplate.hasKey("redPacket")) {
-            logger.info("redis开始第一次缓存");
+            logger.info("还没有缓存数据，开始缓存");
             // 获取红包信息
             redPacket = redPacketDao.getRedPacket(redPacketId);
 
@@ -202,35 +205,29 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             strOps.set("stock", redPacket.getStock().toString(),TIME_OUT, TimeUnit.SECONDS);
             strOps.set("amount", redPacket.getAmount().toString(),TIME_OUT, TimeUnit.SECONDS);
 
-            logger.info("首次存入缓存中的值stock："+strOps.get("stock"));
-
         }
-        // TODO 解决抢包失败率问题
+        // TODO 解决数据一致性问题,解决方案-分布式锁
         // 获取当前红包库存
-        Integer stock = Integer.parseInt(strOps.get("stock"));
-        logger.info("当前缓存中的值stock："+stock);
-        // 如果当前的红包不等于0,可以继续抢红包
-        if(stock != 0) {
-            userRedPacket = new UserRedPacket();
-            userRedPacket.setRedPacketId(redPacketId);
-            userRedPacket.setUserId(userId);
-            userRedPacket.setAmount(new ObjectToBigDecimalUtil().getBigDecimal(strOps.get("amount")));
-            userRedPacket.setGrabTime(new TimeFormatUtil().getCurrentTime(new Date()));
-            userRedPacket.setNote("抢红包：" + redPacketId);
+        SessionCallback sessionCallback = new SessionCallback() {
+            @Override
+            public Object execute(RedisOperations operations) throws DataAccessException {
+                return null;
+            }
+        };
+        sessionCallback.execute(sessionCallback);
 
-            // 将抢到红包的用户信息的对象先存入缓存队列
-            BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
-            listOperations.leftPush(userRedPacket);
-            logger.info("抢到红包的用户信息存入缓存成功");
-
-            // 红包库存-1
-            stock = stock -1;
-            strOps.set("stock",stock.toString(),TIME_OUT, TimeUnit.SECONDS);
-
-            return SUCCESS;
-        }else {
-            // 一旦发现没有库存，立马返回失败
-            return FAILED;
-        }
     }
 }
+
+   /*// 保证每次stock的修改都是独立的
+            SessionCallback sessionCallback = new SessionCallback() {
+                @Override
+                public Object execute(RedisOperations operations) throws DataAccessException {
+                    operations.multi();
+                    // 红包库存-1
+                    Integer nextStock = Integer.parseInt(strOps.get("stock")) - 1;
+                    operations.opsForValue().set("stock",nextStock.toString(),TIME_OUT, TimeUnit.SECONDS);
+                    return operations.exec();
+                }
+            };
+            stringRedisTemplate.execute(sessionCallback);*/
