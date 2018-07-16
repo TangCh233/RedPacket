@@ -7,6 +7,7 @@ import com.demo.dao.UserRedPacketDao;
 import com.demo.entity.RedPacket;
 import com.demo.entity.UserRedPacket;
 import com.demo.service.UserRedPacketService;
+import com.demo.util.KeyUtil;
 import com.demo.util.ObjectToBigDecimalUtil;
 import com.demo.util.TimeFormatUtil;
 import org.slf4j.Logger;
@@ -34,9 +35,9 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
 
     private static final Logger logger = LoggerFactory.getLogger(UserRedPacketServiceImpl.class);
 
-    private static final long SAVE_TIME = 5 * 60 * 1000; // 设置缓存的保存时间，5分钟
+    // private static final long SAVE_TIME = 5 * 60 * 1000; // 设置缓存的保存时间，5分钟
 
-    private static final long TIME_OUT = 10 * 1000; //抢红包超时时间 10s
+    // private static final long TIME_OUT = 10 * 1000; //抢红包超时时间 10s
 
     @Autowired
     private RedPacketDao redPacketDao;
@@ -191,6 +192,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
     public int grepRedPacketByRedis(Integer redPacketId, Integer userId) {
+
         // 用来存取对象
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
 
@@ -198,8 +200,8 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
         ValueOperations<String, String> strOps = stringRedisTemplate.opsForValue();
 
         // 加锁
-        long time = System.currentTimeMillis();
-        if (!redisLockService.lock(userId.toString(), String.valueOf(time))) {
+        String value = KeyUtil.genUniqueKey();
+        if (!redisLockService.lock(userId.toString(), value)) {
             logger.error("服务器被挤爆了...");
             return FAILED;
         }
@@ -211,9 +213,10 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             redPacket = redPacketDao.getRedPacket(redPacketId);
 
             // 首次将数据存入缓存
-            ops.set("redPacket",redPacket,TIME_OUT, TimeUnit.SECONDS);
-            strOps.set("stock", redPacket.getStock().toString(),TIME_OUT, TimeUnit.SECONDS);
-            strOps.set("amount", redPacket.getAmount().toString(),TIME_OUT, TimeUnit.SECONDS);
+            ops.set("redPacket",redPacket);
+            logger.info("redPacket:"+redPacket.toString());
+            strOps.set("stock", redPacket.getStock().toString());
+            strOps.set("amount", redPacket.getAmount().toString());
 
         }
 
@@ -237,7 +240,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             logger.info("用户" + userId + "抢到红包!");
             // 3.减库存
             stock = stock - 1;
-            strOps.set("stock",stock.toString(),TIME_OUT, TimeUnit.SECONDS);
+            strOps.set("stock",stock.toString());
             try {
                 // 模拟耗时请求
                 Thread.sleep(100);
@@ -245,7 +248,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
                 e.printStackTrace();
             }
             // 解锁
-            redisLockService.unLock(userId.toString(), String.valueOf(time));
+            redisLockService.unLock(userId.toString(), value);
             return SUCCESS;
         }
     }

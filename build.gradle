@@ -40,8 +40,11 @@ dependencies {
 	compile('com.alibaba:druid:1.1.10')
 	// Redis
 	compile('org.springframework.boot:spring-boot-starter-data-redis')
-	// AOP
-	compile('org.springframework.boot:spring-boot-starter-aop')
+	// HttpClient
+	// compile('org.apache.httpcomponents:httpclient:4.5.3')
+	// https://mvnrepository.com/artifact/com.alibaba/fastjson
+	// compile('com.alibaba:fastjson:1.2.47')
+
 
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 

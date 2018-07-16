@@ -27,7 +27,7 @@ public class RedisLockServiceImpl implements RedisLockService {
      * 加锁
      *
      * @param key
-     * @param value 当前时间 + 超时时间
+     * @param value
      * @return
      */
     @Override
@@ -38,10 +38,8 @@ public class RedisLockServiceImpl implements RedisLockService {
         }
         String curentValue = stringRedisTemplate.opsForValue().get(key);
 
-        // 如果锁过期
-        if(!StringUtils.isEmpty(curentValue) && Long.parseLong(curentValue) < System.currentTimeMillis()) {
+        if(!StringUtils.isEmpty(curentValue)) {
             // getAndSet设置新值，并返回旧值
-            // 获取上一个锁的时间
             String oldValue = stringRedisTemplate.opsForValue().getAndSet(key, value);
             if(!StringUtils.isEmpty(curentValue) && oldValue.equals(curentValue)) {
                 return true;
