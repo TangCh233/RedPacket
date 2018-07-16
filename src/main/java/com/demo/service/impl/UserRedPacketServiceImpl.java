@@ -1,17 +1,17 @@
 package com.demo.service.impl;
 
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
-import com.demo.config.ObjectToBigDecimalUtil;
-import com.demo.config.TimeFormatUtil;
+import com.demo.service.RedisLockService;
 import com.demo.dao.RedPacketDao;
 import com.demo.dao.UserRedPacketDao;
 import com.demo.entity.RedPacket;
 import com.demo.entity.UserRedPacket;
 import com.demo.service.UserRedPacketService;
+import com.demo.util.ObjectToBigDecimalUtil;
+import com.demo.util.TimeFormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -34,7 +34,9 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
 
     private static final Logger logger = LoggerFactory.getLogger(UserRedPacketServiceImpl.class);
 
-    private static final long TIME_OUT = 300; // 设置缓存的有效期，5分钟
+    private static final long SAVE_TIME = 5 * 60 * 1000; // 设置缓存的保存时间，5分钟
+
+    private static final long TIME_OUT = 10 * 1000; //抢红包超时时间 10s
 
     @Autowired
     private RedPacketDao redPacketDao;
@@ -43,10 +45,18 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
     private UserRedPacketDao userRedPacketDao;
 
     @Autowired
+    private RedisLockService redisLockService;
+
+    @Autowired
     private RedisTemplate redisTemplate;
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+
+    RedPacket redPacket = null;
+
+    UserRedPacket userRedPacket = null;
 
     // 失败
     private static final int FAILED = 0;
@@ -181,16 +191,18 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
     public int grepRedPacketByRedis(Integer redPacketId, Integer userId) {
-        // 红包信息
-        RedPacket redPacket = null;
-        // 抢红包对象信息
-        UserRedPacket userRedPacket = null;
-
         // 用来存取对象
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
 
         // 用来存取字符串
         ValueOperations<String, String> strOps = stringRedisTemplate.opsForValue();
+
+        // 加锁
+        long time = System.currentTimeMillis();
+        if (!redisLockService.lock(userId.toString(), String.valueOf(time))) {
+            logger.error("服务器被挤爆了...");
+            return FAILED;
+        }
 
         // 先去缓存中查询库存信息，如果缓存中没有缓存信息，就从数据库中去查询，并存入缓存
         if(!redisTemplate.hasKey("redPacket")) {
@@ -204,31 +216,37 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             strOps.set("amount", redPacket.getAmount().toString(),TIME_OUT, TimeUnit.SECONDS);
 
         }
+
         // 获取当前红包库存
         Integer stock = Integer.parseInt(strOps.get("stock"));
-        // 如果当前的红包不等于0,可以继续抢红包
-        if(stock != 0) {
+
+        if (0 == stock) {
+            logger.info("活动结束");
+            return FAILED;
+        } else {
+            // 2.下单
             userRedPacket = new UserRedPacket();
             userRedPacket.setRedPacketId(redPacketId);
             userRedPacket.setUserId(userId);
-            userRedPacket.setAmount(new ObjectToBigDecimalUtil().getBigDecimal(strOps.get("amount")));
+            userRedPacket.setAmount(redPacket.getAmount());
             userRedPacket.setGrabTime(new TimeFormatUtil().getCurrentTime(new Date()));
             userRedPacket.setNote("抢红包：" + redPacketId);
 
-            // 红包库存-1
-            stock = stock -1;
-            strOps.set("stock",stock.toString(),TIME_OUT, TimeUnit.SECONDS);
-
-            // 将抢到红包的用户信息的对象先存入缓存队列
             BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
             listOperations.leftPush(userRedPacket);
-            logger.info("用户"+userId+"抢到红包!");
-
+            logger.info("用户" + userId + "抢到红包!");
+            // 3.减库存
+            stock = stock - 1;
+            strOps.set("stock",stock.toString(),TIME_OUT, TimeUnit.SECONDS);
+            try {
+                // 模拟耗时请求
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            // 解锁
+            redisLockService.unLock(userId.toString(), String.valueOf(time));
             return SUCCESS;
-        }else {
-            // 一旦发现没有库存，立马返回失败
-            return FAILED;
         }
-
     }
 }

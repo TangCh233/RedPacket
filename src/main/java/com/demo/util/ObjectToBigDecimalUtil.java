@@ -1,4 +1,4 @@
-package com.demo.config;
+package com.demo.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
