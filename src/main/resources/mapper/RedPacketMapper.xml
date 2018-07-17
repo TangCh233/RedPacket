@@ -24,6 +24,14 @@
         update t_red_packet set stock = stock - 1 where id = #{id}
     </update>
 
+    <update id="saveRedPacketStock">
+        update t_red_packet
+        set
+          stock = #{stock}
+        where
+          id = #{id}
+    </update>
+
     <!--乐观锁-->
     <update id="decreaseRedPacketByVersion">
         update t_red_packet

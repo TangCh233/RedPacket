@@ -32,7 +32,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
 
     private static final Logger logger = LoggerFactory.getLogger(UserRedPacketServiceImpl.class);
 
-    // private static final long SAVE_TIME = 5 * 60 * 1000; // 设置缓存的保存时间，5分钟
+    //  private static final long SAVE_TIME = 5 * 60 * 1000; // 设置缓存的保存时间，5分钟
 
     private static final long TIME_OUT = 10 * 1000; //抢红包超时时间 10s
 
@@ -218,6 +218,16 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
 
         if (0 == stock) {
             logger.info("活动结束");
+            // 把缓存中的数据（抢红包信息）存入数据库
+            BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
+            for (long i = 0; i < listOperations.size(); i++) {
+                userRedPacketDao.grepRedPacket((UserRedPacket) listOperations.index(i));
+            }
+            /*// 删除缓存
+            redisTemplate.delete(listOperations);*/
+            // 更新数据库中的红包信息
+            redPacketDao.saveRedPacketStock(redPacketId, stock);
+
             return FAILED;
         } else {
             // 2.下单

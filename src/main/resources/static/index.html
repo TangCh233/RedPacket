@@ -8,8 +8,8 @@
     </script>
     <script type="text/javascript">
         $(document).ready(function () {
-            //模拟3000个异步请求，进行并发
-            var max = 30;
+            //模拟50个异步请求，进行并发,(50抢20)
+            var max = 50;
             for (var i = 1; i <= max; i++) {
                 //jQuery的post请求，请注意这是异步请求
                 $.post({

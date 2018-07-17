@@ -36,6 +36,14 @@ public interface RedPacketDao extends BaseMapper<RedPacket> {
     int decreaseRedPacket(Integer id);
 
     /**
+     * 保存红包库存到数据库
+     * @param id
+     * @param stock
+     * @return
+     */
+    int saveRedPacketStock(@Param("id") Integer id, @Param("stock") Integer stock);
+
+    /**
      * 扣减红包个数-乐观锁
      * @param id
      * @param version
