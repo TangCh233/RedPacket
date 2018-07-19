@@ -71,7 +71,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
      */
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
-    public int grepRedPacketForVersion(Integer redPacketId, Integer userId) {
+    public int grapRedPacketForVersion(Integer redPacketId, Integer userId) {
         // 允许用户重试抢三次红包
         for(int i = 0; i < 3; i++) {
             // 获取红包信息, 注意version信息
@@ -92,7 +92,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
                 userRedPacket.setAmount(redPacket.getAmount());
                 userRedPacket.setNote("抢红包：" + redPacketId);
                 // 插入抢红包信息
-                int result = userRedPacketDao.grepRedPacket(userRedPacket);
+                int result = userRedPacketDao.grapRedPacket(userRedPacket);
                 return result;
             }else {
                 // 一旦发现没有库存，立马返回失败
@@ -112,7 +112,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
      */
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
-    public int grepRedPacket(Integer redPacketId, Integer userId) {
+    public int grapRedPacket(Integer redPacketId, Integer userId) {
 
         // 获取红包信息
         RedPacket redPacket = redPacketDao.getRedPacketForUpdate(redPacketId);
@@ -126,7 +126,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             userRedPacket.setAmount(redPacket.getAmount());
             userRedPacket.setNote("抢红包：" + redPacketId);
             // 插入抢红包信息
-            int result = userRedPacketDao.grepRedPacket(userRedPacket);
+            int result = userRedPacketDao.grapRedPacket(userRedPacket);
             return result;
         }
         return FAILED;
@@ -140,7 +140,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
      * @return 影响的记录数
      *//*
     @Override
-    public int grepRedPacketForVersion(Integer redPacketId, Integer userId) {
+    public int grapRedPacketForVersion(Integer redPacketId, Integer userId) {
         // 记录开始的时间
         long start = System.currentTimeMillis();
 
@@ -170,7 +170,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
                 userRedPacket.setAmount(redPacket.getAmount());
                 userRedPacket.setNote("抢红包：" + redPacketId);
                 // 插入抢红包信息
-                int result = userRedPacketDao.grepRedPacket(userRedPacket);
+                int result = userRedPacketDao.grapRedPacket(userRedPacket);
                 return result;
             }else {
                 // 一旦发现没有库存，立马返回失败
@@ -188,7 +188,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
      */
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
-    public int grepRedPacketByRedis(Integer redPacketId, Integer userId) {
+    public int grapRedPacketByRedis(Integer redPacketId, Integer userId) {
 
         // 用来存取对象
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
@@ -221,7 +221,7 @@ public class UserRedPacketServiceImpl extends ServiceImpl<UserRedPacketDao, User
             // 把缓存中的数据（抢红包信息）存入数据库
             BoundListOperations<String, Object> listOperations = redisTemplate.boundListOps("userRedPacket");
             for (long i = 0; i < listOperations.size(); i++) {
-                userRedPacketDao.grepRedPacket((UserRedPacket) listOperations.index(i));
+                userRedPacketDao.grapRedPacket((UserRedPacket) listOperations.index(i));
             }
             /*// 删除缓存
             redisTemplate.delete(listOperations);*/

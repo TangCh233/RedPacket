@@ -26,11 +26,11 @@ public class UserRedPacketController {
     @Autowired
     private UserRedPacketService userRedPacketService;
 
-    @RequestMapping("/grepRedPacketByRedis")
+    @RequestMapping("/grapRedPacketByRedis")
     @ResponseBody
     public Map<String, Object> grepRedPacketByRedis(Integer redPacketId, Integer userId) {
         // 抢红包
-        int result = userRedPacketService.grepRedPacketByRedis(redPacketId, userId);
+        int result = userRedPacketService.grapRedPacketByRedis(redPacketId, userId);
         Map<String, Object> resultMap = new HashMap<String, Object>();
         boolean flag = result > 0;
         resultMap.put("success", flag);
@@ -38,11 +38,11 @@ public class UserRedPacketController {
         return resultMap;
     }
 
-    @RequestMapping("/grepRedPacketForVersion")
+    @RequestMapping("/grapRedPacketForVersion")
     @ResponseBody
     public Map<String, Object> grepRedPacketForVersion(Integer redPacketId, Integer userId) {
         // 抢红包
-        int result = userRedPacketService.grepRedPacketForVersion(redPacketId, userId);
+        int result = userRedPacketService.grapRedPacketForVersion(redPacketId, userId);
         Map<String, Object> resultMap = new HashMap<String, Object>();
         boolean flag = result > 0;
         resultMap.put("success", flag);
@@ -50,11 +50,11 @@ public class UserRedPacketController {
         return resultMap;
     }
 
-    @RequestMapping("/grepRedPacket")
+    @RequestMapping("/grapRedPacket")
     @ResponseBody
     public Map<String, Object> grepRedPacket(Integer redPacketId, Integer userId) {
         // 抢红包
-        int result = userRedPacketService.grepRedPacket(redPacketId, userId);
+        int result = userRedPacketService.grapRedPacket(redPacketId, userId);
         Map<String, Object> resultMap = new HashMap<String, Object>();
         boolean flag = result > 0;
         resultMap.put("success", flag);

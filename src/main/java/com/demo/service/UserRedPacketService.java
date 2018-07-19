@@ -18,7 +18,7 @@ public interface UserRedPacketService extends IService<UserRedPacket> {
      * @param userId 抢红包用户编号
      * @return 影响的记录数
      */
-    int grepRedPacket(Integer redPacketId, Integer userId);
+    int grapRedPacket(Integer redPacketId, Integer userId);
 
     /**
      * 保存抢红包信息(乐观锁)
@@ -26,7 +26,7 @@ public interface UserRedPacketService extends IService<UserRedPacket> {
      * @param userId 抢红包用户编号
      * @return 影响的记录数
      */
-    int grepRedPacketForVersion(Integer redPacketId, Integer userId);
+    int grapRedPacketForVersion(Integer redPacketId, Integer userId);
 
     /**
      * 通过redis来保存红包信息
@@ -34,6 +34,6 @@ public interface UserRedPacketService extends IService<UserRedPacket> {
      * @param userId 抢红包用户编号
      * @return
      */
-    int grepRedPacketByRedis(Integer redPacketId, Integer userId);
+    int grapRedPacketByRedis(Integer redPacketId, Integer userId);
 
 }

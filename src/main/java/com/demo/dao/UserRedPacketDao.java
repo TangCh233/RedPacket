@@ -18,5 +18,5 @@ public interface UserRedPacketDao extends BaseMapper<UserRedPacket> {
      * @param userRedPacket
      * @return 影响的行数
      */
-    int grepRedPacket(UserRedPacket userRedPacket);
+    int grapRedPacket(UserRedPacket userRedPacket);
 }
